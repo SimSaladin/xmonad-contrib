@@ -13,6 +13,11 @@
     Added `sorter` to `XPConfig` used to sort the possible completions by how
     well they match the search string (example: `XMonad.Prompt.FuzzyMatch`).
 
+  * `XMonad.Hooks.Focus`
+
+    - Do not overwrite wm name in `handleFocusQuery`, if user has already set
+      it.
+
 ## 0.15
 
 ### Breaking Changes
