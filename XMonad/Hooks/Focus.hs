@@ -71,7 +71,7 @@ import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonad.Util.ExtensibleState as XS
 import XMonad.Hooks.ManageHelpers (currentWs)
-import XMonad.Hooks.EwmhDesktops (activated)
+import XMonad.Hooks.EwmhDesktops (activated, NetActivated(..))
 
 
 -- $main
@@ -97,8 +97,8 @@ import XMonad.Hooks.EwmhDesktops (activated)
 --
 -- I may use one of predefined configurations.
 --
--- 1. Default window activation behavior is switch to workspace with activated
---    window and switch focus to it:
+-- 1. Default window activation behavior is to switch to workspace with
+--    activated window and switch focus to it:
 --
 --      > import XMonad
 --      >
@@ -111,7 +111,7 @@ import XMonad.Hooks.EwmhDesktops (activated)
 --      >             mh = activateSwitchWs
 --      >             xcf = ewmh $ def
 --      >                     { modMask = mod4Mask
---      >                     , manageHook = mh <+> manageHook def
+--      >                     , logHook = activateLogHook mh <+> logHook def
 --      >                     }
 --      >         xmonad xcf
 --
@@ -193,14 +193,18 @@ import XMonad.Hooks.EwmhDesktops (activated)
 -- >    import XMonad.Hooks.ManageHelpers
 -- >    import XMonad.Hooks.Focus
 -- >
+-- >
 -- >    main :: IO ()
 -- >    main = do
--- >            let fh :: ManageHook
--- >                fh = manageFocus $ (composeOne
--- >                        [ liftQuery activated -?> activateFocusHook
--- >                        , Just <$> newFocusHook
--- >                        ])
--- >                xcf = ewmh $ def {manageHook = fh}
+-- >            let newFh :: ManageHook
+-- >                newFh = manageFocus newFocusHook
+-- >                acFh :: X ()
+-- >                acFh = activateLogHook (manageFocus activateFocusHook)
+-- >                xcf = ewmh $ def
+-- >                             { manageHook   = newFh <+> manageHook def
+-- >                             , logHook      = acFh  <+> logHook def
+-- >                             , modMask      = mod4Mask
+-- >                             }
 -- >                        `additionalKeys` [((mod4Mask, xK_v), toggleLock)]
 -- >            xmonad xcf
 --
@@ -209,8 +213,27 @@ import XMonad.Hooks.EwmhDesktops (activated)
 --  - /mod4Mask+v/ key toggles focus lock (when enabled, neither focus nor
 --  workspace won't be switched).
 --  - I need 'XMonad.Hooks.EwmhDesktops' module for enabling window
---  activation. It will call 'manageHook' for activated window and predicate
---  'activated' will be 'True' in this case.
+--  activation.
+--  - 'FocusHook' in 'manageHook' will be called /only/ for new windows.
+--  - 'FocusHook' in 'logHook' will be called /only/ for activated windows.
+--
+--  Alternatively, i may construct a single 'FocusHook' for both new and
+--  activated windows and then just add it to both 'manageHook' and 'logHook':
+--
+-- >            let fh :: ManageHook
+-- >                fh = manageFocus $ (composeOne
+-- >                        [ liftQuery activated -?> activateFocusHook
+-- >                        , Just <$> newFocusHook
+-- >                        ])
+-- >                xcf = ewmh $ def
+-- >                             { manageHook   = fh <+> manageHook def
+-- >                             , logHook      = activateLogHook fh <+> logHook def
+-- >                             , modMask      = mod4Mask
+-- >                             }
+-- >                        `additionalKeys` [((mod4Mask, xK_v), toggleLock)]
+--
+-- Note:
+--  - Predicate 'activated' will be 'True' for activated window.
 --  - The order, when constructing final 'FocusHook': 'FocusHook' without
 --  'activated' predicate will match to activated windows too, thus i should
 --  place it after one with 'activated' (so the latter will have a chance to
@@ -260,12 +283,13 @@ import XMonad.Hooks.EwmhDesktops (activated)
 -- >                        [ liftQuery activated -?> (newOnCur --> keepFocus)
 -- >                        , Just <$> newFocusHook
 -- >                        ])
--- >                xcf = ewmh $ def {manageHook = fh <+> activateOnCurrentWs}
+-- >                xcf = ewmh $ def
+-- >                             { manageHook = fh <+> manageHook def
+-- >                             , logHook    = activateLogHook (fh <+> activateOnCurrentWs) <+> logHook def
+-- >                             , modMask    = mod4Mask
+-- >                             }
 -- >                        `additionalKeys` [((mod4Mask, xK_v), toggleLock)]
 -- >            xmonad xcf
--- >
--- >    activateOnCurrentWs :: ManageHook
--- >    activateOnCurrentWs = activated --> currentWs >>= unlessFocusLock . doShift
 -- >
 -- >    newFocusHook :: FocusHook
 -- >    newFocusHook      = composeOne
@@ -294,7 +318,7 @@ import XMonad.Hooks.EwmhDesktops (activated)
 --  this example.
 --  - when @liftQuery activated -?> (newOnCur --> keepFocus)@ runs, activated
 --  window will be /already/ on current workspace, thus, if i do not want to
---  move some activated windows, i should filter them out in
+--  move some activated windows, i should filter them out before applying
 --  @activateOnCurrentWs@ 'FocusHook'.
 
 

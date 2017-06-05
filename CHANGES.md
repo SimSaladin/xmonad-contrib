@@ -4,6 +4,13 @@
 
 ### Breaking Changes
 
+  * `ewmh` function from `X.H.EwmhDesktops` will use `logHook` for handling
+    activated window. And now by default window activation will do nothing.
+
+    You can use regular `ManageHook` combinators for changing window
+    activation behavior and then add resulting `ManageHook` using
+    `activateLogHook` to your `logHook`.
+
 ### New Modules
 
 ### Bug Fixes and Minor Changes
