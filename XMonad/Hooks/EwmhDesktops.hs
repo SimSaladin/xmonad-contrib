@@ -157,14 +157,14 @@ ewmhDesktopsEventHookCustom f e = handle f e >> return (All True)
 -- this value in global state, because i use 'ManageHook' for handling
 -- activated windows and i need a way to tell 'manageHook', that now a window
 -- is activated.
-newtype NetActivated    = NetActivated {netActivated :: Bool}
+newtype NetActivated    = NetActivated {netActivated :: Maybe Window}
   deriving (Show, Typeable)
 instance ExtensionClass NetActivated where
-    initialValue        = NetActivated False
+    initialValue        = NetActivated Nothing
 
 -- | Was new window @_NET_ACTIVE_WINDOW@ activated?
 activated :: Query Bool
-activated           = fmap netActivated (liftX XS.get)
+activated           = fmap (isJust . netActivated) (liftX XS.get)
 
 handle :: ([WindowSpace] -> [WindowSpace]) -> Event -> X ()
 handle f (ClientMessageEvent {
@@ -192,9 +192,9 @@ handle f (ClientMessageEvent {
                  else  trace $ "Bad _NET_DESKTOP with data[0]="++show n
         else if mt == a_aw then do
                 mh <- asks (manageHook . config)
-                XS.put (NetActivated True)
+                XS.put (NetActivated (Just w))
                 runQuery mh w >>= windows . appEndo
-                XS.put (NetActivated False)
+                XS.put (NetActivated Nothing)
         else if mt == a_cw then do
                killWindow w
         else if mt `elem` a_ignore then do
