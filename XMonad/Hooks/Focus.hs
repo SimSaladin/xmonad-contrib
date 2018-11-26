@@ -62,6 +62,7 @@ module XMonad.Hooks.Focus
 
 import Data.Maybe
 import Data.Monoid
+import qualified Data.Semigroup as S
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader
@@ -369,9 +370,11 @@ instance MonadReader Focus FocusQuery where
     local f (FocusQuery mx) = FocusQuery (local f mx)
 instance MonadIO FocusQuery where
     liftIO mx       = FocusQuery (liftIO mx)
+instance S.Semigroup a => S.Semigroup (FocusQuery a) where
+    (<>)            = liftM2 (S.<>)
 instance Monoid a => Monoid (FocusQuery a) where
     mempty          = return mempty
-    mappend         = liftM2 mappend
+    mappend         = (<>)
 
 runFocusQuery :: FocusQuery a -> Focus -> Query a
 runFocusQuery (FocusQuery m)    = runReaderT m
