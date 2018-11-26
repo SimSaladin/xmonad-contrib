@@ -13,17 +13,17 @@
 
 ### New Modules
 
+  * `XMonad.Hooks.Focus`
+
+    A new module extending ManageHook EDSL to work on focused windows and
+    current workspace.
+
 ### Bug Fixes and Minor Changes
 
   * `XMonad.Prompt`
 
     Added `sorter` to `XPConfig` used to sort the possible completions by how
     well they match the search string (example: `XMonad.Prompt.FuzzyMatch`).
-
-  * `XMonad.Hooks.Focus`
-
-    - Do not overwrite wm name in `handleFocusQuery`, if user has already set
-      it.
 
 ## 0.15
 
