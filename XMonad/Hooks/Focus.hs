@@ -19,6 +19,8 @@ module XMonad.Hooks.Focus
       Focus (..)
     , FocusLock (..)
     , toggleLock
+    , focusLockOn
+    , focusLockOff
     , FocusQuery
     , runFocusQuery
     , FocusHook
@@ -352,6 +354,14 @@ instance ExtensionClass FocusLock where
 -- | Toggle stored focus lock state.
 toggleLock :: X ()
 toggleLock          = XS.modify (\(FocusLock b) -> FocusLock (not b))
+
+-- | Lock focus.
+focusLockOn :: X ()
+focusLockOn         = XS.modify (const (FocusLock True))
+
+-- | Unlock focus.
+focusLockOff :: X ()
+focusLockOff        = XS.modify (const (FocusLock False))
 
 -- | Monad on top of 'Query' providing additional information about new
 -- window.
