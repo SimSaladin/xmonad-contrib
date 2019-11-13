@@ -23,6 +23,7 @@ module XMonad.Util.NamedActions (
     sendMessage',
     spawn',
     submapName,
+    submapDefaultName,
     addDescrKeys,
     addDescrKeys',
     xMessage,
@@ -40,12 +41,12 @@ module XMonad.Util.NamedActions (
     (^++^),
 
     NamedAction(..),
-    HasName,
+    HasName(..),
     defaultKeysDescr
     ) where
 
 
-import XMonad.Actions.Submap(submap)
+import XMonad.Actions.Submap(submap, submapDefault)
 import XMonad
 import System.Posix.Process(executeFile)
 import Control.Arrow(Arrow((&&&), second, (***)))
@@ -158,6 +159,11 @@ data NamedAction = forall a. HasName a => NamedAction a
 -- in "XMonad.Actions.Submap"?
 submapName :: (HasName a) => [((KeyMask, KeySym), a)] -> NamedAction
 submapName = NamedAction . (submap . M.map getAction . M.fromList &&& showKm)
+                . map (second NamedAction)
+
+-- | 'submapDefault'
+submapDefaultName :: (HasName a, HasName b) => a -> [((KeyMask, KeySym), b)] -> NamedAction
+submapDefaultName a = NamedAction . (submapDefault (getAction a) . M.map getAction . M.fromList &&& showKm)
                 . map (second NamedAction)
 
 -- | Combine keymap lists with actions that may or may not have names
