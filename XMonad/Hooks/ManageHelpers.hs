@@ -32,6 +32,7 @@ module XMonad.Hooks.ManageHelpers (
     isInProperty,
     isKDETrayWindow,
     isFullscreen,
+    isMinimized,
     isDialog,
     pid,
     transientTo,
@@ -145,6 +146,11 @@ isInProperty p v = ask >>= \w -> liftX $ do
 -- See also 'doFullFloat'.
 isFullscreen :: Query Bool
 isFullscreen = isInProperty "_NET_WM_STATE" "_NET_WM_STATE_FULLSCREEN"
+
+-- | A predicate to check whether a window is hidden (minimized).
+-- See also "XMonad.Actions.Minimize".
+isMinimized :: Query Bool
+isMinimized = isInProperty "_NET_WM_STATE" "_NET_WM_STATE_HIDDEN"
 
 -- | A predicate to check whether a window is a dialog.
 isDialog :: Query Bool
