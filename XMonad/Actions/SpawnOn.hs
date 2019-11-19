@@ -25,12 +25,13 @@ module XMonad.Actions.SpawnOn (
     spawnOn,
     spawnAndDo,
     shellPromptHere,
-    shellPromptOn
+    shellPromptOn,
+    manageByPPID
 ) where
 
 import Control.Exception (tryJust)
 import Control.Monad (guard)
-import Data.List (isInfixOf)
+import Data.List (find, isPrefixOf, isInfixOf)
 import Data.Maybe (isJust)
 import System.IO.Error (isDoesNotExistError)
 import System.IO.Unsafe (unsafePerformIO)
@@ -76,22 +77,22 @@ instance ExtensionClass Spawner where
 
 getPPIDOf :: ProcessID -> Maybe ProcessID
 getPPIDOf pid =
-    case unsafePerformIO . tryJust (guard . isDoesNotExistError) . readFile . printf "/proc/%d/stat" $ toInteger pid of
+    case unsafePerformIO . tryJust (guard . isDoesNotExistError) . readFile . printf "/proc/%d/status" $ toInteger pid of
       Left _         -> Nothing
-      Right contents -> case lines contents of
-                          []        -> Nothing
-                          first : _ -> case words first of
-                                         _ : _ : _ : ppid : _ -> Just $ fromIntegral (read ppid :: Int)
-                                         _                    -> Nothing
+      Right contents -> do
+        line <- find (isPrefixOf "PPid:") $ lines contents
+        case words line of
+             _ : ppid : _ -> Just $ fromIntegral (read ppid :: Int)
+             _            -> Nothing
 
 getPPIDChain :: ProcessID -> [ProcessID]
-getPPIDChain pid' = ppid_chain pid' []
-    where ppid_chain pid acc =
+getPPIDChain pid' = pid' : ppid_chain pid'
+    where ppid_chain pid =
               if pid == 0
-              then acc
+              then []
               else case getPPIDOf pid of
-                     Nothing   -> acc
-                     Just ppid -> ppid_chain ppid (ppid : acc)
+                     Nothing   -> []
+                     Just ppid -> ppid : ppid_chain ppid
 
 -- | Get the current Spawner or create one if it doesn't exist.
 modifySpawner :: ([(ProcessID, ManageHook)] -> [(ProcessID, ManageHook)]) -> X ()
@@ -159,3 +160,7 @@ spawnAndDo mh cmd = do
     mangle xs | any (`elem` metaChars) xs || "exec" `isInfixOf` xs = xs
               | otherwise = "exec " ++ xs
     metaChars = "&|;"
+
+-- | @manageByPPID 0 idHook@
+manageByPPID :: ProcessID -> ManageHook -> X ()
+manageByPPID pid mh = modifySpawner ((pid,mh):)
