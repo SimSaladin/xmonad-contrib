@@ -4,6 +4,12 @@
 
 ### Breaking Changes
 
+  * `XMonad.Prompt`
+
+    Now `mkComplFunFromList` and `mkComplFunFromList'` take an
+    additional `XPConfig` argument, so that they can take into
+    account the given `searchPredicate`.
+
   * `XMonad.Hooks.EwmhDesktops`
 
     It is no longer recommended to use `fullscreenEventHook` directly.
@@ -45,7 +51,19 @@
 
   * `XMonad.Actions.Search`
 
-    The `hoogle` function now uses the new URL `hoogle.haskell.org`.
+    - The `hoogle` function now uses the new URL `hoogle.haskell.org`.
+    - Added `promptSearchBrowser'` function to only suggest previous searches of
+      the selected search engine (instead of all search engines).
+
+  * `XMonad.Layout.BoringWindows`
+  
+    Added 'markBoringEverywhere' function, to mark the currently
+    focused window boring on all layouts, when using 'XMonad.Actions.CopyWindow'.
+
+  * `XMonad.Layout.MouseResizableTile`
+
+    When we calculate dragger widths, we first try to get the border width of
+    the focused window, before failing over to using the initial `borderWidth`.
 
 ## 0.16
 
