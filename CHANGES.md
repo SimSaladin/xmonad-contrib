@@ -20,6 +20,13 @@
     `XMonad.Layout.Fullscreen.fullscreenSupport` now advertises it as well,
     and no configuration changes are required in this case.
 
+  * `ewmh` function from `X.H.EwmhDesktops` will use `logHook` for handling
+    activated window. And now by default window activation will do nothing.
+
+    You can use regular `ManageHook` combinators for changing window
+    activation behavior and then add resulting `ManageHook` using
+    `activateLogHook` to your `logHook`.
+
 ### New Modules
 
   * `XMonad.Layout.TallMastersCombo`
@@ -36,6 +43,11 @@
     Create actions that run on a `Query Bool`, usually associated with
     conditions on a window, basis. Useful for creating bindings that are
     excluded or exclusive for some windows.
+
+  * `XMonad.Hooks.Focus`
+
+    A new module extending ManageHook EDSL to work on focused windows and
+    current workspace.
 
 ### Bug Fixes and Minor Changes
 
