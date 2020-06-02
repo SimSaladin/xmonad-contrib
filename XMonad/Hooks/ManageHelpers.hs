@@ -232,3 +232,7 @@ doCenterFloat = doSideFloat C
 -- | Hides window and ignores it.
 doHideIgnore :: ManageHook
 doHideIgnore = ask >>= \w -> liftX (hide w) >> doF (W.delete w)
+
+-- | Sinks a window
+doSink :: ManageHook
+doSink = reader (Endo . W.sink)

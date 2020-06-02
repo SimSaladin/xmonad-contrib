@@ -29,6 +29,14 @@
 
 ### New Modules
 
+  * `XMonad.Actions.TiledWindowDragging`
+    An action that allows you to change the position of windows by dragging them around.
+
+  * `XMonad.Layout.ResizableThreeColumns`
+
+    A layout based on 'XMonad.Layout.ThreeColumns' but with each slave window's
+    height resizable.
+
   * `XMonad.Layout.TallMastersCombo`
 
     A layout combinator that support Shrink, Expand, and IncMasterN just as
@@ -49,7 +57,22 @@
     A new module extending ManageHook EDSL to work on focused windows and
     current workspace.
 
+  * `XMonad.Util.DynamicScratchpads`
+
+    Declare any window as a scratchpad on the fly. Once declared, the
+    scratchpad behaves like `XMonad.Util.NamedScratchpad`.
+
 ### Bug Fixes and Minor Changes
+
+  * `XMonad.Util.Run` 
+  
+     Added two new functions to the module:
+     `spawnPipeWithLocaleEncoding` and
+     `spawnPipeWithUtf8Encoding`. `spawnPipe` is now alias for
+     `spawnPipeWithLocaleEncoding`.
+
+     Added the function `spawnPipeWithNoEncoding` for cases where
+     binary handle is required.
 
   * `XMonad.Prompt.Window`
 
@@ -76,6 +99,27 @@
 
     When we calculate dragger widths, we first try to get the border width of
     the focused window, before failing over to using the initial `borderWidth`.
+
+  * `XMonad.Actions.CycleRecentWS`
+
+    - Added `cycleRecentNonEmptyWS` function which behaves like `cycleRecentWS`
+      but is constrainded to non-empty workspaces.
+
+    - Added `toggleRecentWS` and `toggleRecentNonEmptyWS` functions which toggle
+      between the current and most recent workspace, and continue to toggle back
+      and forth on repeated presses, rather than cycling through other workspaces.
+
+    - Added `recentWS` function which allows the recency list to be filtered with
+      a user-provided predicate.
+
+  * `XMonad.Prompt.Window`
+    
+    - Added a `WithWindow` constructor to `WindowPrompt` to allow executing
+      actions of type `Window -> X ()` on the chosen window.
+
+  * `XMonad.Layout.Hidden`
+
+    - Export `HiddenWindows` type constructor.
 
 ## 0.16
 
@@ -508,7 +552,8 @@
 
   * `XMonad.Hooks.ManageHelpers`
 
-    Make type of ManageHook combinators more general.
+    - Make type of ManageHook combinators more general.
+    - New manage hook `doSink` for sinking windows (as upposed to the `doFloat` manage hook)
 
   * `XMonad.Prompt`
 

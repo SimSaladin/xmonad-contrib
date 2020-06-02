@@ -101,6 +101,7 @@ library
                         XMonad.Actions.FindEmptyWorkspace
                         XMonad.Actions.FlexibleManipulate
                         XMonad.Actions.FlexibleResize
+                        XMonad.Actions.TiledWindowDragging
                         XMonad.Actions.FloatKeys
                         XMonad.Actions.FloatSnap
                         XMonad.Actions.FocusNth
@@ -267,6 +268,7 @@ library
                         XMonad.Layout.Reflect
                         XMonad.Layout.Renamed
                         XMonad.Layout.ResizableTile
+                        XMonad.Layout.ResizableThreeColumns
                         XMonad.Layout.ResizeScreen
                         XMonad.Layout.Roledex
                         XMonad.Layout.ShowWName
@@ -319,6 +321,7 @@ library
                         XMonad.Util.CustomKeys
                         XMonad.Util.DebugWindow
                         XMonad.Util.Dmenu
+                        XMonad.Util.DynamicScratchpads
                         XMonad.Util.Dzen
                         XMonad.Util.EZConfig
                         XMonad.Util.ExclusiveScratchpads
