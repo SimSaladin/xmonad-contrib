@@ -572,6 +572,11 @@ Here is a list of the modules found in @XMonad.Hooks@:
 * "XMonad.Hooks.WorkspaceHistory":
     Keeps track of workspace viewing order.
 
+* "XMonad.Hooks.WindowSwallowing"
+    A handleEventHook that implements window swallowing:
+    Hide parent windows like terminals when opening other programs (like image viewers) from within them,
+    restoring them once the child application closes.
+
 * "XMonad.Hooks.XPropManage":
     A ManageHook matching on XProperties.
 
@@ -1105,6 +1110,11 @@ There are also utilities for helping in configuring xmonad or using
 external utilities.
 
 A non complete list with a brief description:
+
+* "XMonad.Util.ClickableWorkspaces":
+    Provides clickablePP, which when applied to the PP pretty-printer used by
+    'XMonad.Hooks.DynamicLog.dynamicLogWithPP', will make the workspace tags
+    clickable in XMobar (for switching focus).
 
 * "XMonad.Util.Cursor": configure the default cursor/pointer glyph.
 

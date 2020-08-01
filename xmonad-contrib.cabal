@@ -195,6 +195,7 @@ library
                         XMonad.Hooks.WallpaperSetter
                         XMonad.Hooks.WorkspaceByPos
                         XMonad.Hooks.WorkspaceHistory
+                        XMonad.Hooks.WindowSwallowing
                         XMonad.Hooks.XPropManage
                         XMonad.Layout.Accordion
                         XMonad.Layout.AutoMaster
@@ -317,6 +318,7 @@ library
                         XMonad.Prompt.Window
                         XMonad.Prompt.Workspace
                         XMonad.Prompt.XMonad
+                        XMonad.Prompt.Zsh
                         XMonad.Util.Cursor
                         XMonad.Util.CustomKeys
                         XMonad.Util.DebugWindow

@@ -29,7 +29,14 @@
 
 ### New Modules
 
+  * `XMonad.Hooks.WindowSwallowing`
+
+    A handleEventHook that implements window swallowing:
+    Hide parent windows like terminals when opening other programs (like image viewers) from within them,
+    restoring them once the child application closes.
+
   * `XMonad.Actions.TiledWindowDragging`
+
     An action that allows you to change the position of windows by dragging them around.
 
   * `XMonad.Layout.ResizableThreeColumns`
@@ -62,7 +69,26 @@
     Declare any window as a scratchpad on the fly. Once declared, the
     scratchpad behaves like `XMonad.Util.NamedScratchpad`.
 
+  * `XMonad.Prompt.Zsh`
+
+    A version of `XMonad.Prompt.Shell` that lets you use completions supplied by
+    zsh.
+
+  * `XMonad.Util.ClickableWorkspaces`
+
+    Provides clickablePP, which when applied to the PP pretty-printer used by
+    `XMonad.Hooks.DynamicLog.dynamicLogWithPP`, will make the workspace tags
+    clickable in XMobar (for switching focus).
+
 ### Bug Fixes and Minor Changes
+
+  * `XMonad.Util.NamedScratchpad`
+
+     Added two new exported functions to the module:
+     - `customRunNamedScratchpadAction` 
+         (provides the option to customize the `X ()` action the scratchpad is launched by) 
+     - `spawnHereNamedScratchpadAction` 
+         (uses `XMonad.Actions.SpawnOn.spawnHere` to initially start the scratchpad on the workspace it was launched on)
 
   * `XMonad.Util.Run` 
   
@@ -120,6 +146,7 @@
   * `XMonad.Layout.Hidden`
 
     - Export `HiddenWindows` type constructor.
+    - Export `popHiddenWindow` function restoring a specific window.
 
 ## 0.16
 
