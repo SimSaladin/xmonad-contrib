@@ -111,6 +111,10 @@ deleteFromStructCache :: Window -> X Bool
 deleteFromStructCache w =
   XS.modified $ StrutCache . M.delete w . fromStrutCache
 
+purgeStructCache :: S.Set Window -> X Bool
+purgeStructCache ws =
+  XS.modified $ StrutCache . flip M.restrictKeys ws . fromStrutCache
+
 -- | Detects if the given window is of type DOCK and if so, reveals
 --   it, but does not manage it.
 manageDocks :: ManageHook
@@ -156,6 +160,7 @@ docksStartupHook = withDisplay $ \dpy -> do
     rootw <- asks theRoot
     (_,_,wins) <- io $ queryTree dpy rootw
     docks <- filterM (runQuery checkDock) wins
+    purgeStructCache (S.fromList docks)
     forM_ docks $ \win -> do
         strut <- getStrut win
         updateStrutCache win strut

@@ -50,6 +50,7 @@ module XMonad.Prompt.Pass (
                             , passRemovePrompt
                             , passEditPrompt
                             , passTypePrompt
+                            , passPromptWith
                             ) where
 
 import XMonad.Core
@@ -127,6 +128,11 @@ mkPassPrompt promptLabel passwordFunction xpconfig = do
 passPrompt :: XPConfig -> X ()
 passPrompt = mkPassPrompt "Select password" selectPassword
 
+-- | A prompt to execute custom pass command with an entry.
+--
+passPromptWith :: String -> XPConfig -> X ()
+passPromptWith passArgs = mkPassPrompt ("Select password (" ++ passArgs ++ ")") (selectWith passArgs)
+
 -- | A prompt to retrieve a OTP from a given entry.
 --
 passOTPPrompt :: XPConfig -> X ()
@@ -173,6 +179,11 @@ selectPassword passLabel = spawn $ "pass --clip \"" ++ escapeQuote passLabel ++ 
 --
 selectOTP :: String -> X ()
 selectOTP passLabel = spawn $ "pass otp --clip \"" ++ escapeQuote passLabel ++ "\""
+
+-- | Custom arguments to pass.
+--
+selectWith :: String -> String -> X ()
+selectWith passArgs passLabel = spawn $ "pass " ++ passArgs ++ " \"" ++ escapeQuote passLabel ++ "\""
 
 -- | Generate a 30 characters password for a given entry.
 -- If the entry already exists, it is updated with a new password.
