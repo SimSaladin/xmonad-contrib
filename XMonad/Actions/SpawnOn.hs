@@ -27,7 +27,8 @@ module XMonad.Actions.SpawnOn (
     spawnOn,
     spawnAndDo,
     shellPromptHere,
-    shellPromptOn
+    shellPromptOn,
+    manageByPPID
 ) where
 
 import System.Posix.Types (ProcessID)
@@ -132,3 +133,7 @@ spawnAndDo mh cmd = do
     mangle xs | any (`elem` metaChars) xs || "exec" `isInfixOf` xs = xs
               | otherwise = "exec " ++ xs
     metaChars = "&|;"
+
+-- | @manageByPPID 0 idHook@
+manageByPPID :: ProcessID -> ManageHook -> X ()
+manageByPPID thisPid mh = modifySpawner ((thisPid,mh):)
