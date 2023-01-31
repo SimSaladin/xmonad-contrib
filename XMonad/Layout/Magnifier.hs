@@ -26,6 +26,7 @@ module XMonad.Layout.Magnifier
 
       -- * General combinators
       magnify,
+      magnifyTop,
 
       -- * Magnify Everything
       magnifier,
@@ -48,7 +49,7 @@ module XMonad.Layout.Magnifier
 
 import Numeric.Natural (Natural)
 
-import XMonad
+import XMonad hiding (focus)
 import XMonad.Prelude (bool, fi)
 import XMonad.Layout.LayoutModifier
 import XMonad.StackSet
@@ -117,7 +118,11 @@ magnify
     -> l a          -- ^ Input layout
     -> ModifiedLayout Magnifier l a
 magnify cz mt start = ModifiedLayout $
-    Mag 1 (fromRational cz, fromRational cz) (bool Off On start) mt
+    Mag 1 (fromRational cz, fromRational cz) (bool Off On start) mt False
+
+-- | Like 'magnify' but magnifies the window on top of the stack even when it isn't the focused window.
+magnifyTop cz mt start = ModifiedLayout $
+    Mag 1 (fromRational cz, fromRational cz) (bool Off On start) mt True
 
 -- | Increase the size of the window that has focus
 magnifier :: l a -> ModifiedLayout Magnifier l a
@@ -156,7 +161,7 @@ magnifierczOff' cz = magnify cz (NoMaster 1) False
 
 -- | A magnifier that greatly magnifies just the vertical direction
 maximizeVertical :: l a -> ModifiedLayout Magnifier l a
-maximizeVertical = ModifiedLayout (Mag 1 (1, 1000) Off (AllWins 1))
+maximizeVertical = ModifiedLayout (Mag 1 (1, 1000) Off (AllWins 1) False)
 
 data MagnifyMsg = MagnifyMore | MagnifyLess | ToggleOn | ToggleOff | Toggle
 instance Message MagnifyMsg
@@ -173,6 +178,8 @@ data Magnifier a = Mag
       -- ^ Whether to magnify windows at all.
     , magWhen :: !MagnifyThis
       -- ^ Conditions when to magnify a given window
+    , magTop :: !Bool
+      -- ^ Whether to magnify the window on top of the stack even when it isn't the focused window.
     }
     deriving (Read, Show)
 
@@ -191,31 +198,31 @@ data MagnifyThis
 instance LayoutModifier Magnifier Window where
     redoLayout _   _ Nothing  wrs = pure (wrs, Nothing)
     redoLayout mag r (Just s) wrs = case mag of
-        Mag _ z On (AllWins  k) -> magnifyAt k (applyMagnifier z r s wrs)
-        Mag n z On (NoMaster k) ->
-            magnifyAt k (unlessMaster n (applyMagnifier z) r s wrs)
+        Mag _ z On (AllWins  k) mt -> magnifyAt k (applyMagnifier z mt r s wrs)
+        Mag n z On (NoMaster k) mt ->
+            magnifyAt k (unlessMaster n (applyMagnifier z mt) r s wrs)
         _ -> pure (wrs, Nothing)
       where
         magnifyAt cutoff magnifyFun
             | fromIntegral cutoff <= length (integrate s) = magnifyFun
             | otherwise                                   = pure (wrs, Nothing)
 
-    handleMess (Mag n z On  t) m
-        | Just MagnifyMore    <- fromMessage m = return . Just $ Mag n             (z `addto`   0.1 ) On  t
-        | Just MagnifyLess    <- fromMessage m = return . Just $ Mag n             (z `addto` (-0.1)) On  t
-        | Just ToggleOff      <- fromMessage m = return . Just $ Mag n             z                  Off t
-        | Just Toggle         <- fromMessage m = return . Just $ Mag n             z                  Off t
-        | Just (IncMasterN d) <- fromMessage m = return . Just $ Mag (max 0 (n+d)) z                  On  t
+    handleMess (Mag n z On  t mt) m
+        | Just MagnifyMore    <- fromMessage m = return . Just $ Mag n             (z `addto`   0.1 ) On  t mt
+        | Just MagnifyLess    <- fromMessage m = return . Just $ Mag n             (z `addto` (-0.1)) On  t mt
+        | Just ToggleOff      <- fromMessage m = return . Just $ Mag n             z                  Off t mt
+        | Just Toggle         <- fromMessage m = return . Just $ Mag n             z                  Off t mt
+        | Just (IncMasterN d) <- fromMessage m = return . Just $ Mag (max 0 (n+d)) z                  On  t mt
       where addto (x, y) i = (x + i, y + i)
-    handleMess (Mag n z Off t) m
-        | Just ToggleOn       <- fromMessage m = return . Just $ Mag n             z                  On  t
-        | Just Toggle         <- fromMessage m = return . Just $ Mag n             z                  On  t
-        | Just (IncMasterN d) <- fromMessage m = return . Just $ Mag (max 0 (n+d)) z                  Off t
+    handleMess (Mag n z Off t mt) m
+        | Just ToggleOn       <- fromMessage m = return . Just $ Mag n             z                  On  t mt
+        | Just Toggle         <- fromMessage m = return . Just $ Mag n             z                  On  t mt
+        | Just (IncMasterN d) <- fromMessage m = return . Just $ Mag (max 0 (n+d)) z                  Off t mt
     handleMess _ _ = return Nothing
 
-    modifierDescription (Mag _ _ On  AllWins{} ) = "Magnifier"
-    modifierDescription (Mag _ _ On  NoMaster{}) = "Magnifier NoMaster"
-    modifierDescription (Mag _ _ Off _         ) = "Magnifier (off)"
+    modifierDescription (Mag _ _ On  AllWins{}  _) = "Magnifier"
+    modifierDescription (Mag _ _ On  NoMaster{} _) = "Magnifier NoMaster"
+    modifierDescription (Mag _ _ Off _          _) = "Magnifier (off)"
 
 type NewLayout a = Rectangle -> Stack a -> [(Window, Rectangle)] -> X ([(Window, Rectangle)], Maybe (Magnifier a))
 
@@ -223,12 +230,13 @@ unlessMaster :: Int -> NewLayout a -> NewLayout a
 unlessMaster n mainmod r s wrs = if null (drop (n-1) (up s)) then return (wrs, Nothing)
                                                              else mainmod r s wrs
 
-applyMagnifier :: (Double,Double) -> Rectangle -> t -> [(Window, Rectangle)]
+applyMagnifier :: (Double,Double) -> Bool -> Rectangle -> Stack Window -> [(Window, Rectangle)]
                -> X ([(Window, Rectangle)], Maybe a)
-applyMagnifier z r _ wrs = do focused <- withWindowSet (return . peek)
-                              let mag (w,wr) ws | focused == Just w = ws ++ [(w, fit r $ magnify' z wr)]
-                                                | otherwise         = (w,wr) : ws
-                              return (reverse $ foldr mag [] wrs, Nothing)
+applyMagnifier z mt r s wrs = do
+    focused <- if mt then pure (Just (focus s)) else withWindowSet (return . peek)
+    let mag (w,wr) ws | focused == Just w = ws ++ [(w, fit r $ magnify' z wr)]
+                      | otherwise         = (w,wr) : ws
+    return (reverse $ foldr mag [] wrs, Nothing)
 
 magnify' :: (Double, Double) -> Rectangle -> Rectangle
 magnify' (zoomx,zoomy) (Rectangle x y w h) = Rectangle x' y' w' h'
