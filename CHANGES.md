@@ -4,6 +4,10 @@
 
 ### Breaking Changes
 
+  * Deprecated the `XMonad.Layout.StateFull` module and
+    `XMonad.Layout.TrackFloating.(t|T)rackFloating` in favour of
+    `XMonad.Layout.FocusTracking`.
+
   * Dropped support for GHC 8.4.
 
   * `XMonad.Util.ExclusiveScratchpads`
@@ -77,6 +81,10 @@
 
 ### New Modules
 
+  * `XMonad.Layout.FocusTracking`.
+
+    - Replaces `X.L.StateFull` and half of `X.L.TrackFloating`.
+
   * `XMonad.Actions.MostRecentlyUsed`
 
     - Tab through windows by recency of use. Based on the Alt+Tab behaviour
@@ -98,12 +106,35 @@
     - A new module replicating the functionality of
       `XMonad.Hooks.DynamicProperty`, but with more discoverable names.
 
+  * `XMonad.Actions.ToggleFullFloat`:
+
+    - Fullscreen (float) a window while remembering its original state.
+      There's both an action to be bound to a key, and hooks that plug into
+      `XMonad.Hooks.EwmhDesktops`.
+
 ### Bug Fixes and Minor Changes
+
+  * `XMonad.Util.Loggers`
+
+    - Added `logClassname`, `logClassnames`, `logClassnames'`,
+      `logClassnameOnScreen`, `logClassnamesOnScreen`, `logClassnamesOnScreen'`,
+      and `ClassnamesFormat`. These are all equivalents of their `Title`
+      counterparts, allowing logging the window classname instead.
+
+  * `XMonad.Hooks.StatusBar.PP`
+
+    - `dynamicLogString` now forces its result and produces an error string if
+      it throws an exception. Use `dynamicLogString'` if for some reason you
+      need the old behavior.
 
   * `XMonad.Util.EZConfig`
 
     - Added `remapKeysP`, which remaps keybindings from one binding to
       another.
+
+    - Made `additionalKeys{,P}`, `removeKeys{,P}`, `remapKeysP`, and
+      `{additional,remove}MouseBindings` `infixl 4` so they can more easily
+      be concatenated with `(++)`.
 
   * `XMonad.Util.NamedScratchpad`
 
@@ -177,6 +208,11 @@
       some status bars (see this
       [polybar issue](https://github.com/polybar/polybar/issues/2603)).
 
+    - Added `setEwmhFullscreenHooks` to override the default fullfloat/sink
+      behaviour of `_NET_WM_STATE_FULLSCREEN` requests. See also
+      `XMonad.Actions.ToggleFullFloat` for a float-restoring implementation of
+      fullscreening.
+
   * `XMonad.Hooks.StatusBar`
 
     - Added `startAllStatusBars` to start the configured status bars.
@@ -185,6 +221,11 @@
 
     - Changed `addDescrKeys` and `addDescrKeys'` to not discard the
       keybindings in the current config.
+
+  * `XMonad.Prompt`
+
+    - The `emacsLikeXPKeymap` and `vimLikeXPKeymap` keymaps now treat
+      `C-m` the same as `Return`.
 
 ### Other changes
 

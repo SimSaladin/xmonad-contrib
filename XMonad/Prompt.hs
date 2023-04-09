@@ -715,7 +715,7 @@ handleInputMain keymask (keysym,keystr) = do
                 updateWindows
                 updateHighlightedCompl
                 complete <- tryAutoComplete
-                when complete $ setSuccess True >> setDone True
+                when complete acceptSelection
 
 -- There are two options to store the completion list during the main loop:
 -- * Use the State monad, with 'Nothing' as the initial state.
@@ -968,8 +968,8 @@ defaultXPKeymap' p = M.fromList $
   , (xK_bracketleft, quit)
   ] ++
   map (first $ (,) 0)
-  [ (xK_Return, setSuccess True >> setDone True)
-  , (xK_KP_Enter, setSuccess True >> setDone True)
+  [ (xK_Return, acceptSelection)
+  , (xK_KP_Enter, acceptSelection)
   , (xK_BackSpace, deleteString Prev)
   , (xK_Delete, deleteString Next)
   , (xK_Left, moveCursor Prev)
@@ -1009,6 +1009,7 @@ emacsLikeXPKeymap' p = M.fromList $
   , (xK_g, quit)
   , (xK_bracketleft, quit)
   , (xK_t, transposeChars)
+  , (xK_m, acceptSelection)
   ] ++
   map (first $ (,) mod1Mask) -- meta key + <key>
   [ (xK_BackSpace, killWord' p Prev)
@@ -1021,8 +1022,8 @@ emacsLikeXPKeymap' p = M.fromList $
   ]
   ++
   map (first $ (,) 0) -- <key>
-  [ (xK_Return, setSuccess True >> setDone True)
-  , (xK_KP_Enter, setSuccess True >> setDone True)
+  [ (xK_Return, acceptSelection)
+  , (xK_KP_Enter, acceptSelection)
   , (xK_BackSpace, deleteString Prev)
   , (xK_Delete, deleteString Next)
   , (xK_Left, moveCursor Prev)
@@ -1058,9 +1059,12 @@ vimLikeXPKeymap' :: (XPColor -> XPColor)
                     -- alternates.
                  -> M.Map (KeyMask,KeySym) (XP ())
 vimLikeXPKeymap' fromColor promptF pasteFilter notWord = M.fromList $
+    map (first $ (,) controlMask) -- control + <key>
+    [ (xK_m, acceptSelection)
+    ] ++
     map (first $ (,) 0)
-    [ (xK_Return,       setSuccess True >> setDone True)
-    , (xK_KP_Enter,     setSuccess True >> setDone True)
+    [ (xK_Return,       acceptSelection)
+    , (xK_KP_Enter,     acceptSelection)
     , (xK_BackSpace,    deleteString Prev)
     , (xK_Delete,       deleteString Next)
     , (xK_Left,         moveCursor Prev)
@@ -1165,6 +1169,10 @@ setModeDone :: Bool -> XP ()
 setModeDone b = modify $ \s -> s { modeDone = b }
 
 -- KeyPress and State
+
+-- | Accept the current selection and exit.
+acceptSelection :: StateT XPState IO ()
+acceptSelection = setSuccess True >> setDone True
 
 -- | Quit.
 quit :: XP ()
