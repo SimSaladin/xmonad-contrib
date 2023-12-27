@@ -276,7 +276,12 @@ selectOTPType = spawn . typeString . pass "otp"
 -- | Custom arguments to pass.
 --
 selectWith :: String -> String -> X ()
-selectWith passArgs passLabel = spawn $ "pass " ++ passArgs ++ " \"" ++ escapeQuote passLabel ++ "\""
+selectWith passArgs passLabel = spawn $ "pass " ++ passArgs ++ " \"" ++ concatMap escape passLabel ++ "\""
+ where
+  escape :: Char -> String
+  escape '"'  = "\\\""
+  escape '\\' = "\\\\"
+  escape x    = [x]
 
 -- | Generate a 30 characters password for a given entry.
 -- If the entry already exists, it is updated with a new password.
