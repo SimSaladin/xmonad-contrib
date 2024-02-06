@@ -71,6 +71,9 @@ module XMonad.Prompt.Pass
       -- * One-time-passwords
     , passOTPPrompt
     , passOTPTypePrompt
+
+      -- * Misc.
+    , passPromptWith
     ) where
 
 import System.Directory (getHomeDirectory)
@@ -147,6 +150,11 @@ passPrompt = passPrompt' "Select password"
 -- | The same as 'passPrompt' but with a user-specified prompt.
 passPrompt' :: String -> XPConfig -> X ()
 passPrompt' s = mkPassPrompt s selectPassword
+
+-- | A prompt to execute custom pass command with an entry.
+--
+passPromptWith :: String -> XPConfig -> X ()
+passPromptWith passArgs = mkPassPrompt ("Select password (" ++ passArgs ++ ")") (selectWith passArgs)
 
 -- | A prompt to retrieve a OTP from a given entry.  Note that you will
 -- need to use the <https://github.com/tadfisher/pass-otp pass-otp>
@@ -264,6 +272,16 @@ selectOTP = spawn . pass "otp --clip"
 --
 selectOTPType :: String -> X ()
 selectOTPType = spawn . typeString . pass "otp"
+
+-- | Custom arguments to pass.
+--
+selectWith :: String -> String -> X ()
+selectWith passArgs passLabel = spawn $ "pass " ++ passArgs ++ " \"" ++ concatMap escape passLabel ++ "\""
+ where
+  escape :: Char -> String
+  escape '"'  = "\\\""
+  escape '\\' = "\\\\"
+  escape x    = [x]
 
 -- | Generate a 30 characters password for a given entry.
 -- If the entry already exists, it is updated with a new password.

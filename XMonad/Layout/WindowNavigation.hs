@@ -28,11 +28,15 @@ module XMonad.Layout.WindowNavigation (
 
 import XMonad.Prelude ( nub, sortBy, (\\) )
 import XMonad hiding (Point)
+import Foreign
+
 import qualified XMonad.StackSet as W
 import XMonad.Layout.LayoutModifier
 import XMonad.Util.Invisible
 import XMonad.Util.Types (Direction2D(..))
 import XMonad.Util.XUtils
+import Text.Printf
+
 
 -- $usage
 -- You can use this module with the following in your @xmonad.hs@:
@@ -120,7 +124,7 @@ instance LayoutModifier WindowNavigation Window where
         do XConf { normalBorder = nbc, focusedBorder = fbc, display = dpy } <- ask
            [uc,dc,lc,rc] <-
                case brightness conf of
-               Just frac -> do myc <- averagePixels fbc nbc frac
+               Just frac -> do myc <- averagePixels' fbc nbc frac
                                return [myc,myc,myc,myc]
                Nothing -> mapM (stringToPixel dpy) [upColor conf, downColor conf,
                                                     leftColor conf, rightColor conf]
@@ -199,12 +203,31 @@ instance LayoutModifier WindowNavigation Window where
                handleMessOrMaybeModifyIt (WindowNavigation conf (I $ Just (NS pt wrs))) (SomeMessage Hide)
     handleMessOrMaybeModifyIt _ _ = return Nothing
 
+pixelToString' d p = do
+    let cm = defaultColormap d (defaultScreen d)
+    (Color _ r g b _) <- io (queryColor d cm $ Color (p .&. 0x00ffffff) 0 0 0 0)
+    return  ("#" ++ hex r ++ hex g ++ hex b)
+  where
+    hex = printf "%02x" . (`shiftR` 8)
+
+averagePixels' :: Pixel -> Pixel -> Double -> X Pixel
+averagePixels' p1 p2 f =
+    do d <- asks display
+       let cm = defaultColormap d (defaultScreen d)
+       [Color _ r1 g1 b1 _,Color _ r2 g2 b2 _] <- io $ queryColors d cm [Color (rmAlpha p1) 0 0 0 0,Color (rmAlpha p2) 0 0 0 0]
+       let mn x1 x2 = round (fromIntegral x1 * f + fromIntegral x2 * (1-f))
+       Color p _ _ _ _ <- io $ allocColor d cm (Color 0 (mn r1 r2) (mn g1 g2) (mn b1 b2) 0)
+       return (addAlpha p)
+  where
+    rmAlpha  = (.&. 0x00ffffff)
+    addAlpha = (.|. 0xff000000)
+
 navigable :: Direction2D -> Point -> [(Window, Rectangle)] -> [(Window, Rectangle)]
 navigable d pt = sortby d . filter (inr d pt . snd)
 
 sc :: Pixel -> Window -> X ()
 sc c win = withDisplay $ \dpy -> do
-    colorName <- io (pixelToString dpy c)
+    colorName <- io (pixelToString' dpy c)
     setWindowBorderWithFallback dpy win colorName c
 
 center :: Rectangle -> Point
