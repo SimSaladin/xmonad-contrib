@@ -246,7 +246,7 @@ setEwmhActivateHook h = XC.modifyDef $ \c -> c{ activateHook = h }
 
 
 -- $customFullscreen
--- When a client sends a @_NET_WM_STATE@ request to add/remove/toggle the
+-- When a client sends a @_NET_WM_STATE@ request to add\/remove\/toggle the
 -- @_NET_WM_STATE_FULLSCREEN@ state, 'ewmhFullscreen' uses a pair of hooks to
 -- make the window fullscreen and revert its state. The default hooks are
 -- stateless: windows are fullscreened by turning them into fullscreen floats,
@@ -545,10 +545,10 @@ fullscreenEventHook'
       chWstate f = io $ changeProperty32 dpy win wmstate aTOM propModeReplace (f wstate)
 
   when (managed && typ == wmstate && fi fullsc `elem` dats) $ do
-    when (action == add || (action == toggle && not isFull)) $ do
+    when (not isFull && (action == add || action == toggle)) $ do
       chWstate (fi fullsc:)
       windows . appEndo =<< runQuery fullscreenHook win
-    when (action == remove || (action == toggle && isFull)) $ do
+    when (isFull && (action == remove || action == toggle)) $ do
       chWstate $ delete (fi fullsc)
       windows . appEndo =<< runQuery unFullscreenHook win
 

@@ -4,6 +4,57 @@
 
 ### Breaking Changes
 
+  * `XMonad.Hooks.StatusBars`
+
+    - Move status bar functions from the `IO` to the `X` monad to
+       allow them to look up information from `X`, like the screen
+       width. Existing configurations may need to use `io` from
+       `XMonad.Core` or `liftIO` from `Control.Monad.IO.Class` in
+       order to lift any existing `IO StatusBarConfig` values into
+       `X StatusBarConfig` values.
+
+  * `XMonad.Prompt`
+
+    - Added an additional `XPConfig` argument to `historyCompletion` and
+      `historyCompletionP`. Calls along the lines of `historyCompletionP
+      myFunc` should be changed to `historyCompletionP myConf myFunc`.
+      If not `myConf` is lying around, `def` can be used instead.
+
+### New Modules
+
+  * `XMonad.Actions.Profiles`.
+
+    - Group workspaces by similarity. Useful when one has lots
+	  of workspaces and uses only a couple per unit of work.
+
+### Bug Fixes and Minor Changes
+
+  * Fix build-with-cabal.sh when XDG_CONFIG_HOME is defined.
+
+  * `XMonad.Util.EZConfig`
+
+    - Fixed `checkKeymap` warning that all keybindings are duplicates.
+
+  * `XMonad.Hooks.ManageHelpers`
+
+    - Added `isNotification` predicate to check for windows with
+      `_NET_WM_WINDOW_TYPE` property of `_NET_WM_WINDOW_TYPE_NOTIFICATION`.
+
+  * `XMonad.Prompt.OrgMode`
+
+    - Added `HH:MM-HH:MM` and `HH:MM+HH` syntax to specify time spans.
+
+  * `XMonad.Prompt`
+
+    - The history file is not extraneously read and written anymore if
+      the `historySize` is set to 0.
+
+### Other changes
+
+## 0.18.0 (February 3, 2024)
+
+### Breaking Changes
+
   * Deprecated `XMonad.Layout.Cross` due to bitrot; refer to
     `XMonad.Layout.Circle` and `XMonad.Layout.ThreeColumns` for
     alternatives.
@@ -144,6 +195,12 @@
 
     - A new window layout, similar to X.L.Circle, but with more
       possibilities for customisation.
+
+  * `XMonad.Layout.DecorationEx`:
+
+    - A new, more extensible, mechanism for window decorations, and some
+      standard types of decorations, including usual bar on top of window,
+      tabbed decorations and dwm-like decorations.
 
 ### Bug Fixes and Minor Changes
 
@@ -300,8 +357,6 @@
 
     - Added `zipperFocusedAtFirstOf` to differentiate two lists into a
       zipper.
-
-### Other changes
 
 ## 0.17.1 (September 3, 2022)
 
