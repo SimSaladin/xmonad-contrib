@@ -4,14 +4,75 @@
 
 ### Breaking Changes
 
+  * Drop support for GHC 8.6
+
+### Bug Fixes and Minor Changes
+
+  * `XMonad.Util.EZConfig`
+
+    - Added `XF86WLAN` and `Menu` to the list of supported special keys.
+
+  * `XMonad.Actions.DynamicProjects`
+
+    - No longer autodelete projects when `switchProject` is called from
+      an empty workspace. This also fixes a bug where static workspaces
+      would be deleted when switching to a dynamic project.
+    - Improved documentation on how to close a project.
+
+  * `XMonad.Hooks.Rescreen`
+
+    - Allow overriding the `rescreen` operation itself. Additionally, the
+      `XMonad.Actions.PhysicalScreens` module now provides an alternative
+      implementation of `rescreen` that avoids reshuffling the workspaces if
+      the number of screens doesn't change and only their locations do (which
+      is especially common if one uses `xrandr --setmonitor` to split an
+      ultra-wide display in two).
+
+    - Added an optional delay when waiting for events to settle. This may be
+      used to avoid flicker and unnecessary workspace reshuffling if multiple
+      `xrandr` commands are used to reconfigure the display layout.
+
+  * `XMonad.Layout.NoBorders`
+
+    - It's no longer necessary to use `borderEventHook` to garbage collect
+      `alwaysHidden`/`neverHidden` lists. The layout listens to
+      `DestroyWindowEvent` messages instead, which are broadcast to layouts
+      since xmonad v0.17.0.
+
+  * `XMonad.Hooks.EwmhDesktops`
+
+    - Added a customization option for the action that gets executed when
+      a client sends a **_NET_CURRENT_DESKTOP** request. It is now possible
+      to change it using the `setEwmhSwitchDesktopHook`.
+    - Added a customization option for mapping hidden workspaces to screens
+      when setting the **_NET_DESKTOP_VIEWPORT**. This can be done using
+      the `setEwmhHiddenWorkspaceToScreenMapping`.
+
+  * `XMonad.Layout.IndependentScreens`
+
+    - Added `focusWorkspace` for focusing workspaces on the screen that they
+      belong to.
+    - Added `doFocus'` hook as an alternative for `doFocus` when using
+      IndependentScreens.
+    - Added `screenOnMonitor` for getting the active screen for a monitor.
+
+  * `XMonad.Util.NamedScratchPad`
+
+    - Fix unintended window hiding in `nsSingleScratchpadPerWorkspace`.
+      Only hide the previously active scratchpad.
+
+## 0.18.1 (August 20, 2024)
+
+### Breaking Changes
+
   * `XMonad.Hooks.StatusBars`
 
     - Move status bar functions from the `IO` to the `X` monad to
-       allow them to look up information from `X`, like the screen
-       width. Existing configurations may need to use `io` from
-       `XMonad.Core` or `liftIO` from `Control.Monad.IO.Class` in
-       order to lift any existing `IO StatusBarConfig` values into
-       `X StatusBarConfig` values.
+      allow them to look up information from `X`, like the screen
+      width. Existing configurations may need to use `io` from
+      `XMonad.Core` or `liftIO` from `Control.Monad.IO.Class` in
+      order to lift any existing `IO StatusBarConfig` values into
+      `X StatusBarConfig` values.
 
   * `XMonad.Prompt`
 
@@ -20,12 +81,36 @@
       myFunc` should be changed to `historyCompletionP myConf myFunc`.
       If not `myConf` is lying around, `def` can be used instead.
 
+  * `XMonad.Actions.GridSelect`
+
+    - Added the `gs_cancelOnEmptyClick` field to `GSConfig`, which makes
+      mouse clicks into "empty space" cancel the current grid-select.
+      Users explicitly defining their own `GSConfig` record will have to
+      add this to their definitions. Additionally, the field defaults to
+      `True`—to retain the old behaviour, set it to `False`.
+
 ### New Modules
 
-  * `XMonad.Actions.Profiles`.
+  * `XMonad.Actions.Profiles`
 
     - Group workspaces by similarity. Useful when one has lots
-	  of workspaces and uses only a couple per unit of work.
+      of workspaces and uses only a couple per unit of work.
+
+  * `XMonad.Hooks.FloatConfigureReq`
+
+    - Customize handling of floating windows' move/resize/restack requests
+      (ConfigureRequest). Useful as a workaround for some misbehaving client
+      applications (Steam, rxvt-unicode, anything that tries to restore
+      absolute position of floats).
+
+  * `XMonad.Layout.Columns`
+
+    - Organize windows in columns. This layout allows to move/resize windows in
+      every directions.
+
+  * `XMonad.Prompt.WindowBringer`
+
+    - Added `copyMenu`, a convenient way to copy a window to the current workspace.
 
 ### Bug Fixes and Minor Changes
 
@@ -48,6 +133,30 @@
 
     - The history file is not extraneously read and written anymore if
       the `historySize` is set to 0.
+
+  * `XMonad.Hooks.EwmhDesktops`
+
+    - Requests for unmanaged windows no longer cause a refresh. This avoids
+      flicker and also fixes disappearing menus in the Steam client and
+      possibly a few other client applications.
+
+      (See also `XMonad.Hooks.FloatConfigureReq` and/or `XMonad.Util.Hacks`
+      for additional Steam client workarounds.)
+
+  * `XMonad.Actions.Submap`
+
+    - Added `visualSubmapSorted` to enable sorting of the keymap
+      descriptions.
+
+  * `XMonad.Hooks.ScreenCorners`
+
+    - Added screen edge support with `SCTop`, `SCBottom`, `SCLeft` and
+      `SCRight`. Now both corners and edges are supported.
+
+  * `XMonad.Actions.WindowNavigation`
+
+    - Improve navigation in presence of floating windows.
+    - Handle window switching when in `Full` layout.
 
 ### Other changes
 
@@ -371,7 +480,8 @@
   * `XMonad.Config.{Arossato,Dmwit,Droundy,Monad,Prime,Saegesser,Sjanssen}`
 
     - Deprecated all of these modules.  The user-specific configuration
-      modules may still be found [on the website].
+      modules may still be found [on the
+      website](https://xmonad.org/configurations.html)
 
   * `XMonad.Util.NamedScratchpad`
 
@@ -391,8 +501,6 @@
 
     - Deprecated `urgencyConfig`; use `def` from the new `Default`
       instance of `UrgencyConfig` instead.
-
-[on the website]: https://xmonad.org/configurations.html
 
 ### New Modules
 
@@ -468,7 +576,8 @@
       `todo +d 12 02 2024` work.
 
     - Added the ability to specify alphabetic (`#A`, `#B`, and `#C`)
-      [priorities] at the end of the input note.
+      [priorities](https://orgmode.org/manual/Priorities.html) at the end of
+      the input note.
 
   * `XMonad.Prompt.Unicode`
 
@@ -562,7 +671,8 @@
 
     - Modified `mkAbsolutePath` to support a leading environment variable, so
       things like `$HOME/NOTES` work. If you want more general environment
-      variable support, comment on [this PR].
+      variable support, comment on [this
+      PR](https://github.com/xmonad/xmonad-contrib/pull/744)
 
   * `XMonad.Util.XUtils`
 
@@ -600,9 +710,6 @@
   * `XMonad.Hooks.UrgencyHook`
 
     - Added a `Default` instance for `UrgencyConfig` and `DzenUrgencyHook`.
-
-[this PR]: https://github.com/xmonad/xmonad-contrib/pull/744
-[priorities]: https://orgmode.org/manual/Priorities.html
 
 ### Other changes
 
@@ -2129,8 +2236,8 @@
 
   * `XMonad.Prompt.Pass`
 
-    This module provides 3 `XMonad.Prompt`s to ease passwords
-    manipulation (generate, read, remove) via [pass][].
+    This module provides 3 `XMonad.Prompt`s to ease passwords manipulation
+    (generate, read, remove) via [pass](http://www.passwordstore.org/).
 
   * `XMonad.Util.RemoteWindows`
 
@@ -2206,5 +2313,3 @@
 ## See Also
 
 <https://wiki.haskell.org/Xmonad/Notable_changes_since_0.8>
-
-[pass]: http://www.passwordstore.org/

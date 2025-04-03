@@ -12,7 +12,7 @@ jobs:
       contents: read
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@v26
+        uses: cachix/install-nix-action@v31
         with:
           install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
           install_options: '--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve'
@@ -25,4 +25,6 @@ jobs:
         # "nix build" builds with full optimization and includes a profiling
         # build, so just the build of xmonad-contrib itself takes 3 minutes.
         # As a workaround, we invoke cabal manually here.
-        run: nix develop -c cabal v2-build -O0 -j
+        run: |
+          nix develop -c cabal v2-update -O0 -j
+          nix develop -c cabal v2-build -O0 -j

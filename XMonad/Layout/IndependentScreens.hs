@@ -26,8 +26,8 @@ module XMonad.Layout.IndependentScreens (
     marshallPP,
     whenCurrentOn,
     countScreens,
-    workspacesOn,
-    workspaceOnScreen, focusWindow', focusScreen, nthWorkspace, withWspOnScreen,
+    workspacesOn, screenOnMonitor,
+    workspaceOnScreen, focusWindow', doFocus', focusScreen, focusWorkspace, nthWorkspace, withWspOnScreen,
     -- * Converting between virtual and physical workspaces
     -- $converting
     marshall, unmarshall, unmarshallS, unmarshallW,
@@ -40,6 +40,7 @@ import XMonad
 import XMonad.Hooks.StatusBar.PP
 import XMonad.Prelude
 import qualified XMonad.StackSet as W
+import XMonad.Actions.OnScreen (viewOnScreen)
 
 -- $usage
 -- You can use this module with the following in your @xmonad.hs@:
@@ -147,7 +148,7 @@ withWspOnScreen screenId operation ws = case workspaceOnScreen screenId ws of
     Just wsp -> operation wsp ws
     Nothing -> ws
 
--- | Get the workspace that is active on a given screen.
+-- | Get the screen that is active on a given monitor.
 screenOnMonitor :: ScreenId -> WindowSet -> Maybe WindowScreen
 screenOnMonitor screenId ws = find ((screenId ==) . W.screen) (W.current ws : W.visible ws)
 
@@ -159,9 +160,19 @@ focusWindow' window ws
       Just tag -> W.focusWindow window $ focusScreen (unmarshallS tag) ws
       Nothing -> ws
 
+-- | ManageHook to focus a window, switching workspace on the correct Xinerama screen if neccessary.
+-- Useful in 'XMonad.Hooks.EwmhDesktops.setActivateHook' when using this module.
+doFocus' :: ManageHook
+doFocus' = doF . focusWindow' =<< ask
+
 -- | Focus a given screen.
 focusScreen :: ScreenId -> WindowSet -> WindowSet
 focusScreen screenId = withWspOnScreen screenId W.view
+
+-- | Focus the given workspace on the correct Xinerama screen.
+-- An example usage can be found at `XMonad.Hooks.EwmhDesktops.setEwmhSwitchDesktopHook`
+focusWorkspace :: WorkspaceId -> WindowSet -> WindowSet
+focusWorkspace workspaceId = viewOnScreen (unmarshallS workspaceId) workspaceId
 
 -- | Get the nth virtual workspace
 nthWorkspace :: Int -> X (Maybe VirtualWorkspace)

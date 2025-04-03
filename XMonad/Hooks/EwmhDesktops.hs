@@ -42,6 +42,10 @@ module XMonad.Hooks.EwmhDesktops (
     -- $customActivate
     setEwmhActivateHook,
 
+    -- ** Workspace switching
+    -- $customWorkspaceSwitch
+    setEwmhSwitchDesktopHook,
+
     -- ** Fullscreen
     -- $customFullscreen
     setEwmhFullscreenHooks,
@@ -49,6 +53,9 @@ module XMonad.Hooks.EwmhDesktops (
     -- ** @_NET_DESKTOP_VIEWPORT@
     -- $customManageDesktopViewport
     disableEwmhManageDesktopViewport,
+
+    -- $customHiddenWorkspaceMapper
+    setEwmhHiddenWorkspaceToScreenMapping,
 
     -- * Standalone hooks (deprecated)
     ewmhDesktopsStartup,
@@ -114,8 +121,12 @@ data EwmhDesktopsConfig =
             -- ^ configurable handling of window activation requests
         , fullscreenHooks :: (ManageHook, ManageHook)
             -- ^ configurable handling of fullscreen state requests
+        , switchDesktopHook :: WorkspaceId -> WindowSet -> WindowSet
+            -- ^ configurable action for handling _NET_CURRENT_DESKTOP
         , manageDesktopViewport :: Bool
             -- ^ manage @_NET_DESKTOP_VIEWPORT@?
+        , hiddenWorkspaceToScreen :: WindowSet -> WindowSpace -> WindowScreen
+            -- ^ map hidden workspaces to screens for @_NET_DESKTOP_VIEWPORT@
         }
 
 instance Default EwmhDesktopsConfig where
@@ -124,7 +135,10 @@ instance Default EwmhDesktopsConfig where
         , workspaceRename = pure pure
         , activateHook = doFocus
         , fullscreenHooks = (doFullFloat, doSink)
+        , switchDesktopHook = W.view
         , manageDesktopViewport = True
+        -- Hidden workspaces are mapped to the current screen by default.
+        , hiddenWorkspaceToScreen = \winset _ -> W.current winset
         }
 
 
@@ -231,8 +245,8 @@ setEwmhWorkspaceRename f = XC.modifyDef $ \c -> c{ workspaceRename = f }
 -- >   [ className =? "Google-chrome" <||> className =? "google-chrome" -?> doAskUrgent
 -- >   , pure True -?> doFocus ]
 --
--- See "XMonad.ManageHook", "XMonad.Hooks.ManageHelpers" and "XMonad.Hooks.Focus"
--- for functions that can be useful here.
+-- See "XMonad.ManageHook", "XMonad.Hooks.ManageHelpers", "XMonad.Hooks.Focus" and
+-- "XMonad.Layout.IndependentScreens" for functions that can be useful here.
 
 -- | Set (replace) the hook which is invoked when a client sends a
 -- @_NET_ACTIVE_WINDOW@ request to activate a window. The default is 'doFocus'
@@ -243,6 +257,31 @@ setEwmhWorkspaceRename f = XC.modifyDef $ \c -> c{ workspaceRename = f }
 -- "XMonad.ManageHook", "XMonad.Hooks.ManageHelpers" and "XMonad.Hooks.Focus".
 setEwmhActivateHook :: ManageHook -> XConfig l -> XConfig l
 setEwmhActivateHook h = XC.modifyDef $ \c -> c{ activateHook = h }
+
+
+-- $customWorkspaceSwitch
+-- When a client sends a @_NET_CURRENT_DESKTOP@ request to switch to a workspace,
+-- the default action used to do that is the 'W.view' function.
+-- This may not be the desired behaviour in all configurations.
+--
+-- For example if using the "XMonad.Layout.IndependentScreens" the default action
+-- might move a workspace to a screen that it isn't supposed to be on.
+-- This behaviour can be fixed using the following:
+--
+-- > import XMonad.Actions.OnScreen
+-- > import XMonad.Layout.IndependentScreens
+-- >
+-- > main = xmonad $ ... . setEwmhSwitchDesktopHook focusWorkspace . ewmh . ... $
+-- >  def{
+-- >    ...
+-- >      workspaces = withScreens 2 (workspaces def)
+-- >    ...
+-- >  }
+
+-- | Set (replace) the action which is invoked when a client sends a
+-- @_NET_CURRENT_DESKTOP@ request to switch workspace.
+setEwmhSwitchDesktopHook :: (WorkspaceId -> WindowSet -> WindowSet) -> XConfig l -> XConfig l
+setEwmhSwitchDesktopHook action = XC.modifyDef $ \c -> c{ switchDesktopHook = action }
 
 
 -- $customFullscreen
@@ -282,6 +321,34 @@ setEwmhFullscreenHooks f uf = XC.modifyDef $ \c -> c{ fullscreenHooks = (f, uf) 
 --
 disableEwmhManageDesktopViewport :: XConfig l -> XConfig l
 disableEwmhManageDesktopViewport = XC.modifyDef $ \c -> c{ manageDesktopViewport = False }
+
+
+-- $customHiddenWorkspaceMapper
+--
+-- Mapping the hidden workspaces to the current screen is a good default behavior,
+-- but it makes the assumption that workspaces don't belong to a sepcific screen.
+-- If the default behaviour is undesired, for example when using "XMonad.Layout.IndependentScreens",
+-- it can be customized.
+--
+-- The following example demonstrates a way to configure the mapping when using "XMonad.Layout.IndependentScreens":
+--
+-- > import XMonad.Layout.IndependentScreens
+-- >
+-- > customMapper :: WindowSet -> (WindowSpace -> WindowScreen)
+-- > customMapper winset (Workspace wsid _ _) = fromMaybe (W.current winset) maybeMappedScreen
+-- >  where
+-- >    screenId = unmarshallS wsid
+-- >    maybeMappedScreen = screenOnMonitor screenId winset
+-- >
+-- >
+-- > main = xmonad $ ... . setEwmhHiddenWorkspaceToScreenMapping customMapper . ewmh . ... $ def{...}
+
+-- | Set (replace) the function responsible for mapping the hidden workspaces to screens.
+setEwmhHiddenWorkspaceToScreenMapping :: (WindowSet -> (WindowSpace -> WindowScreen))
+                                        -- ^ Function that given the current WindowSet
+                                        -- produces a function to maps a (hidden) workspace to a screen.
+                                        -> XConfig l -> XConfig l
+setEwmhHiddenWorkspaceToScreenMapping mapper = XC.modifyDef $ \c -> c{ hiddenWorkspaceToScreen = mapper }
 
 
 -- | Initializes EwmhDesktops and advertises EWMH support to the X server.
@@ -358,7 +425,7 @@ whenChanged :: (Eq a, ExtensionClass a) => a -> X () -> X ()
 whenChanged = whenX . XS.modified . const
 
 ewmhDesktopsLogHook' :: EwmhDesktopsConfig -> X ()
-ewmhDesktopsLogHook' EwmhDesktopsConfig{workspaceSort, workspaceRename, manageDesktopViewport} = withWindowSet $ \s -> do
+ewmhDesktopsLogHook' EwmhDesktopsConfig{workspaceSort, workspaceRename, manageDesktopViewport, hiddenWorkspaceToScreen} = withWindowSet $ \s -> do
     sort' <- workspaceSort
     let ws = sort' $ W.workspaces s
 
@@ -423,18 +490,20 @@ ewmhDesktopsLogHook' EwmhDesktopsConfig{workspaceSort, workspaceRename, manageDe
     when manageDesktopViewport $ do
         let visibleScreens = W.current s : W.visible s
             currentTags    = map (W.tag . W.workspace) visibleScreens
-        whenChanged (MonitorTags currentTags) $ mkViewPorts s (map W.tag ws)
+        whenChanged (MonitorTags currentTags) $ mkViewPorts s hiddenWorkspaceToScreen (map W.tag ws)
 
 -- | Create the viewports from the current 'WindowSet' and a list of
 -- already sorted workspace IDs.
-mkViewPorts :: WindowSet -> [WorkspaceId] -> X ()
-mkViewPorts winset = setDesktopViewport . concat . mapMaybe (viewPorts M.!?)
+mkViewPorts :: WindowSet -> (WindowSet -> WindowSpace -> WindowScreen) -> [WorkspaceId] -> X ()
+mkViewPorts winset hiddenWorkspaceMapper = setDesktopViewport . concat . mapMaybe (viewPorts M.!?)
   where
     foc = W.current winset
-    -- Hidden workspaces are mapped to the current screen's viewport.
     viewPorts :: M.Map WorkspaceId [Position]
     viewPorts = M.fromList $ map mkVisibleViewPort (foc : W.visible winset)
-                          ++ map (mkViewPort foc)  (W.hidden winset)
+                          ++ map (uncurry mkViewPort) hiddenWorkspacesWithScreens
+
+    hiddenWorkspacesWithScreens :: [(WindowScreen,WindowSpace)]
+    hiddenWorkspacesWithScreens = map (\x -> (hiddenWorkspaceMapper winset x, x)) (W.hidden winset)
 
     mkViewPort :: WindowScreen -> WindowSpace -> (WorkspaceId, [Position])
     mkViewPort scr w = (W.tag w, mkPos scr)
@@ -449,7 +518,7 @@ mkViewPorts winset = setDesktopViewport . concat . mapMaybe (viewPorts M.!?)
 ewmhDesktopsEventHook' :: Event -> EwmhDesktopsConfig -> X All
 ewmhDesktopsEventHook'
         ClientMessageEvent{ev_window = w, ev_message_type = mt, ev_data = d}
-        EwmhDesktopsConfig{workspaceSort, activateHook} =
+        EwmhDesktopsConfig{workspaceSort, activateHook, switchDesktopHook} =
     withWindowSet $ \s -> do
         sort' <- workspaceSort
         let ws = sort' $ W.workspaces s
@@ -459,10 +528,17 @@ ewmhDesktopsEventHook'
         a_aw <- getAtom "_NET_ACTIVE_WINDOW"
         a_cw <- getAtom "_NET_CLOSE_WINDOW"
 
-        if  | mt == a_cd, n : _ <- d, Just ww <- ws !? fi n ->
-                if W.currentTag s == W.tag ww then mempty else windows $ W.view (W.tag ww)
+        if  | mt == a_cw ->
+                killWindow w
+            | mt == a_cd, n : _ <- d, Just ww <- ws !? fi n ->
+                if W.currentTag s == W.tag ww then mempty else windows $ switchDesktopHook (W.tag ww)
             | mt == a_cd ->
                 trace $ "Bad _NET_CURRENT_DESKTOP with data=" ++ show d
+            | not (w `W.member` s) ->
+                -- do nothing for unmanaged windows; it'd be just a useless
+                -- refresh which breaks menus/popups of misbehaving apps that
+                -- send _NET_ACTIVE_WINDOW requests for override-redirect wins
+                mempty
             | mt == a_d, n : _ <- d, Just ww <- ws !? fi n ->
                 if W.findTag w s == Just (W.tag ww) then mempty else windows $ W.shiftWin (W.tag ww) w
             | mt == a_d ->
@@ -473,8 +549,6 @@ ewmhDesktopsEventHook'
                 if W.peek s == Just w then mempty else windows $ W.focusWindow w
             | mt == a_aw -> do
                 if W.peek s == Just w then mempty else windows . appEndo =<< runQuery activateHook w
-            | mt == a_cw ->
-                killWindow w
             | otherwise ->
                 -- The Message is unknown to us, but that is ok, not all are meant
                 -- to be handled by the window manager
